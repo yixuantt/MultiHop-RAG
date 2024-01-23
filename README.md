@@ -16,7 +16,7 @@ python simple_retrieval.py --retriever BAAI/llm-embedder
 # test simple retrieval with rerank and save results
 python simple_retrieval.py --retriever BAAI/llm-embedder --rerank
 ```
-![](https://pic.imgdb.cn/item/65af80c1871b83018a80927e.png)
+![xpXSe.png](https://i0.imgs.ovh/2024/01/23/xpXSe.png)
 
 # License
 MultiHop-RAG is licensed under [ODC-BY](https://opendatacommons.org/licenses/by/1-0/)
