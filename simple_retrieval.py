@@ -15,7 +15,6 @@ from llama_index import (
     VectorStoreIndex,
     set_global_service_context
 )
-from llama_index.text_splitter import SentenceSplitter
 from llama_index.extractors import BaseExtractor
 from llama_index.ingestion import IngestionPipeline
 from llama_index.embeddings.cohereai import CohereEmbedding
