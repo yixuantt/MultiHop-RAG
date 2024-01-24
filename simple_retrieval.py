@@ -43,9 +43,7 @@ class CustomExtractor(BaseExtractor):
         return metadata_list
     
 if __name__ == '__main__':
-    os.environ["OPENAI_API_KEY"] = "your_api_key"
-    os.environ["COHERE_API_KEY"] = "your_cohere_api_key"
-    openai.api_key = os.environ["OPENAI_API_KEY"]
+    openai.api_key = os.environ.get("OPENAI_API_KEY", "your_openai_api_key")
     openai.base_url = "your_api_base"
     voyage_api_key = os.environ.get("VOYAGE_API_KEY", "your_voyage_api_key")
     cohere_api_key = os.environ.get("COHERE_API_KEY", "your_cohere_api_key")
