@@ -17,6 +17,16 @@ python simple_retrieval.py --retriever BAAI/llm-embedder
 python simple_retrieval.py --retriever BAAI/llm-embedder --rerank
 ```
 ![rag.png](resource/rag.png)
-
+# Reference
+```
+@misc{tang2024multihoprag,
+      title={MultiHop-RAG: Benchmarking Retrieval-Augmented Generation for Multi-Hop Queries}, 
+      author={Yixuan Tang and Yi Yang},
+      year={2024},
+      eprint={2401.15391},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+```
 # License
 MultiHop-RAG is licensed under [ODC-BY](https://opendatacommons.org/licenses/by/1-0/)
