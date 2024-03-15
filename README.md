@@ -9,7 +9,7 @@ A Dataset for **Evaluating Retrieval-Augmented Generation Across Documents**
 # Simple Use Case
 Please try 'simple_retrieval.py,' a sample use case demonstrating retrieval using this dataset. 
 ```
-pip install llama-index
+pip install llama-index==0.9.40
 ```
 ```shell
 # test simple retrieval and save results
@@ -19,6 +19,12 @@ python simple_retrieval.py --retriever BAAI/llm-embedder
 python simple_retrieval.py --retriever BAAI/llm-embedder --rerank
 ```
 ![rag.png](resource/rag.png)
+
+# Evaluation for Retrieval
+'evaluate.py' is a sample of the evaluation code; we encourage a broader range of retrieval metrics to assess performance.
+```
+python evaluate.py --file {saved_file_path}
+```
 # Citation
 ```
 @misc{tang2024multihoprag,
