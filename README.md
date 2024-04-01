@@ -6,8 +6,13 @@ A Dataset for **Evaluating Retrieval-Augmented Generation Across Documents**
 📄 Paper Link: [MultiHop-RAG: Benchmarking Retrieval-Augmented Generation for Multi-Hop Queries](https://arxiv.org/pdf/2401.15391.pdf)  
 🤗 [Hugging Face dataloader](https://huggingface.co/datasets/yixuantt/MultiHopRAG)
 
+![rag.png](resource/rag.png)
+
 # Simple Use Case
-Please try 'simple_retrieval.py,' a sample use case demonstrating retrieval using this dataset. 
+
+**1. For Retrieval**
+
+Please try '**simple_retrieval.py**,' a sample use case demonstrating retrieval using this dataset. 
 ```
 pip install llama-index==0.9.40
 ```
@@ -18,13 +23,21 @@ python simple_retrieval.py --retriever BAAI/llm-embedder
 # test simple retrieval with rerank and save results
 python simple_retrieval.py --retriever BAAI/llm-embedder --rerank
 ```
-![rag.png](resource/rag.png)
 
-# Evaluation for Retrieval
+**2. For QA**
+
+Please try '**qa_llama.py**,' a sample use case demonstrating query and answer with llama using this dataset. 
+
+```
+python qa_llama.py
+```
+# Evaluation
+
 'evaluate.py' is a sample of the evaluation code; we encourage a broader range of retrieval metrics to assess performance.
 ```
 python evaluate.py --file {saved_file_path}
 ```
+
 # Citation
 ```
 @misc{tang2024multihoprag,

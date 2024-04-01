@@ -1,8 +1,14 @@
 import json
 import os
-import re
 from typing import Any, Generator, List, Optional
 from llama_index.schema import Document
+
+def save_list_to_json(lst, filename):
+    """Save Files
+
+    """
+    with open(filename, 'w') as file:
+        json.dump(lst, file)
 
 def wr_dict(filename,dic):
     """Write Files
