@@ -1,9 +1,11 @@
 # 💡 MultiHop-RAG
 A Dataset for **Evaluating Retrieval-Augmented Generation Across Documents**  
 
+   
 # 🚀 Overview
 **MultiHop-RAG**: a QA dataset to evaluate retrieval and reasoning across documents with metadata in the RAG pipelines. It contains 2556 queries, with evidence for each query distributed across 2 to 4 documents. The queries also involve document metadata, reflecting complex scenarios commonly found in real-world RAG applications.  
-📄 Paper Link: [MultiHop-RAG: Benchmarking Retrieval-Augmented Generation for Multi-Hop Queries](https://arxiv.org/pdf/2401.15391.pdf)  
+
+📄 Paper Link **(Accepted by COLM 2024)**: [MultiHop-RAG: Benchmarking Retrieval-Augmented Generation for Multi-Hop Queries](https://arxiv.org/pdf/2401.15391.pdf)  
 🤗 [Hugging Face dataloader](https://huggingface.co/datasets/yixuantt/MultiHopRAG)
 
 ![rag.png](resource/rag.png)
