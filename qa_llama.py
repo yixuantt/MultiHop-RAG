@@ -16,7 +16,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name,
 prefix = "Below is a question followed by some context from different sources. Please answer the question based on the context. The answer to the question is a word or entity. If the provided information is insufficient to answer the question, respond 'Insufficient Information'. Answer directly without explanation."
 
 # toy_data/voyage-02_rerank_retrieval_test.json is a file saved the last step (retrieve).
-with open('toy_data/voyage-02_rerank_retrieval_test.json', 'r') as file:
+with open('toy_data/step1_data.json', 'r') as file:
     doc_data = json.load(file)
 
 def query_bot(

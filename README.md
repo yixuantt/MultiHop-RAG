@@ -35,9 +35,11 @@ python qa_llama.py
 ```
 # Evaluation
 
-'evaluate.py' is a sample of the evaluation code; we encourage a broader range of retrieval metrics to assess performance.
+For Step 1 (Retrieval): 'retrieval_evaluate.py' 
+
+For Step 2 (Reasoning): 'qa_evaluate.py' 
 ```
-python evaluate.py --file {saved_file_path}
+python retrieval_evaluate.py --file {saved_file_path}
 ```
 
 # Citation
