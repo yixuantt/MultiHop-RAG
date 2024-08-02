@@ -35,9 +35,9 @@ python qa_llama.py
 ```
 # Evaluation
 
-For Step 1 (Retrieval): 'retrieval_evaluate.py' 
+**1. For Retrieval**: 'retrieval_evaluate.py' 
 
-For Step 2 (Reasoning): 'qa_evaluate.py' 
+**2. For QA**: 'qa_evaluate.py' 
 ```
 python retrieval_evaluate.py --file {saved_file_path}
 ```
