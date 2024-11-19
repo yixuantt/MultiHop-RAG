@@ -41,6 +41,11 @@ python qa_llama.py
 ```
 python retrieval_evaluate.py --file {saved_file_path}
 ```
+# Construction Pipeline
+
+For research purposes, we open-sourced part of the code for constructing the dataset. However, the current structure of the code is not very tidy. We will organize it in the future.
+
+💡 Just For Reference
 
 # Citation
 ```
