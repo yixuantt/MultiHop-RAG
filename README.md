@@ -2,7 +2,7 @@
 A Dataset for **Evaluating Retrieval-Augmented Generation Across Documents**  
 
    
-# 🚀 Overview
+## 🚀 Overview
 **MultiHop-RAG**: a QA dataset to evaluate retrieval and reasoning across documents with metadata in the RAG pipelines. It contains 2556 queries, with evidence for each query distributed across 2 to 4 documents. The queries also involve document metadata, reflecting complex scenarios commonly found in real-world RAG applications.  
 
 📄 Paper Link **(Accepted by COLM 2024)**: [MultiHop-RAG: Benchmarking Retrieval-Augmented Generation for Multi-Hop Queries](https://arxiv.org/pdf/2401.15391.pdf)  
@@ -10,7 +10,7 @@ A Dataset for **Evaluating Retrieval-Augmented Generation Across Documents**
 
 ![rag.png](resource/rag.png)
 
-# Simple Use Case
+## Simple Use Case
 
 **1. For Retrieval**
 
@@ -33,7 +33,7 @@ Please try '**qa_llama.py**,' a sample use case demonstrating query and answer w
 ```
 python qa_llama.py
 ```
-# Evaluation
+## Evaluation
 
 **1. For Retrieval**: 'retrieval_evaluate.py' 
 
@@ -41,13 +41,13 @@ python qa_llama.py
 ```
 python retrieval_evaluate.py --file {saved_file_path}
 ```
-# Construction Pipeline
+## Construction Pipeline
 
 For research purposes, we open-sourced part of the code to construct the dataset. However, the current structure of the code is not very tidy. We will organize it in the future.
 
 💡 Just For Reference: pipeline/
 
-# Citation
+## Citation
 ```
 @misc{tang2024multihoprag,
       title={MultiHop-RAG: Benchmarking Retrieval-Augmented Generation for Multi-Hop Queries}, 
@@ -58,5 +58,5 @@ For research purposes, we open-sourced part of the code to construct the dataset
       primaryClass={cs.CL}
 }
 ```
-# License
+## License
 MultiHop-RAG is licensed under [ODC-BY](https://opendatacommons.org/licenses/by/1-0/)
