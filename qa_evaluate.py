@@ -53,24 +53,28 @@ def calculate_metrics(pred_list, gold_list):
     tp = sum(1 for pred, gold in zip(pred_list, gold_list) if has_intersection(pred.lower(), gold.lower()))
     fp = sum(1 for pred, gold in zip(pred_list, gold_list) if not has_intersection(pred.lower(), gold.lower()))
     fn = len(gold_list) - tp
+    tn = len(pred_list) - tp 
 
     precision = tp / (tp + fp) if tp + fp > 0 else 0
     recall = tp / (tp + fn) if tp + fn > 0 else 0
     f1 = 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
-    return precision, recall, f1
+    accuracy = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
+
+    return precision, recall, f1, accuracy
 
 # Output evaluation data for each question_type
 for question_type, data in type_data.items():
-    precision, recall, f1 = calculate_metrics(data['pred_list'], data['gold_list'])
+    precision, recall, f1, accuracy = calculate_metrics(data['pred_list'], data['gold_list'])
     print(f"Question Type: {question_type}")
     print(f" Precision: {precision:.2f}")
     print(f" Recall: {recall:.2f}")
     print(f" F1 Score: {f1:.2f}")
-    print()
+    print(f" accuracy: {accuracy:.2f}")
 
 # Calculate overall evaluation metrics
-overall_precision, overall_recall, overall_f1 = calculate_metrics(overall_pred_list, overall_gold_list)
+overall_precision, overall_recall, overall_f1, overall_accuracy = calculate_metrics(overall_pred_list, overall_gold_list)
 print(f"Overall Metrics:")
 print(f" Precision: {overall_precision:.2f}")
 print(f" Recall: {overall_recall:.2f}")
 print(f" F1 Score: {overall_f1:.2f}")
+print(f" Accuracy: {overall_accuracy:.2f}")
