@@ -1,2 +1,4 @@
 llama-index==0.9.40
 transformers
+langgraph==1.2.9
+python-dotenv

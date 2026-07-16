@@ -1,80 +1,92 @@
+import argparse
 import json
-from tqdm import tqdm
 import re
-from collections import Counter
+from collections import defaultdict
 
-# Read files
-with open('qa_output/llama.json', 'r') as file:
-    doc_data = json.load(file)
+from tqdm import tqdm
 
-with open('dataset/MultiHopRAG.json', 'r') as file:
-    query_data = json.load(file)
 
-# Initialize dictionary to save lists of predictions and gold standards for each question_type
-type_data = {}
-overall_pred_list = []
-overall_gold_list = []
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Evaluate generated QA answers.")
+    parser.add_argument(
+        "--file",
+        default="qa_output/hybrid_llama.json",
+        help="Generated-answer JSON from qa_llama.py.",
+    )
+    parser.add_argument(
+        "--queries",
+        default="dataset/MultiHopRAG.json",
+        help="Original MultiHopRAG query JSON, used as a fallback for gold answers.",
+    )
+    return parser.parse_args()
 
-# Function to get the correct answer
-def get_gold(query):
-    for q in query_data:
-        if q['query'] == query:
-            return q['answer']
-    return ''
 
-# Function to check if there is an intersection of words between two strings
-def has_intersection(a, b):
-    a_words = set(a.split())
-    b_words = set(b.split())
-    return len(a_words.intersection(b_words)) > 0
+def has_intersection(prediction: str, gold: str) -> bool:
+    return bool(set(prediction.split()).intersection(gold.split()))
 
-# Function to extract the answer
-def extract_answer(input_string):
-    match = re.search(r'The answer to the question is "(.*?)"', input_string)
-    return match.group(1) if match else input_string
 
-# Main loop, iterate through document data
-for d in tqdm(doc_data):
-    model_answer = d['model_answer']
-    if 'The answer' in model_answer:
-        model_answer = extract_answer(model_answer)
-    gold = get_gold(d['query'])
-    if gold:
-        question_type = d['question_type']
-        if question_type not in type_data:
-            type_data[question_type] = {'pred_list': [], 'gold_list': []}
-        type_data[question_type]['pred_list'].append(model_answer)
-        type_data[question_type]['gold_list'].append(gold)
-        overall_pred_list.append(model_answer)
-        overall_gold_list.append(gold)
+def extract_answer(text: str) -> str:
+    match = re.search(r'The answer to the question is "(.*?)"', text)
+    return match.group(1) if match else text
 
-# Function to calculate evaluation metrics
-def calculate_metrics(pred_list, gold_list):
-    tp = sum(1 for pred, gold in zip(pred_list, gold_list) if has_intersection(pred.lower(), gold.lower()))
-    fp = sum(1 for pred, gold in zip(pred_list, gold_list) if not has_intersection(pred.lower(), gold.lower()))
-    fn = len(gold_list) - tp
-    tn = len(pred_list) - tp 
 
-    precision = tp / (tp + fp) if tp + fp > 0 else 0
-    recall = tp / (tp + fn) if tp + fn > 0 else 0
-    f1 = 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
-    accuracy = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
+def calculate_metrics(predictions, gold_answers):
+    correct = sum(
+        has_intersection(prediction.lower(), gold.lower())
+        for prediction, gold in zip(predictions, gold_answers)
+    )
+    total = len(gold_answers)
+    # For this one-answer-per-question setting, precision, recall, F1 and
+    # accuracy all reduce to the same exact per-question success rate.
+    score = correct / total if total else 0.0
+    return score, score, score, score
 
-    return precision, recall, f1, accuracy
 
-# Output evaluation data for each question_type
-for question_type, data in type_data.items():
-    precision, recall, f1, accuracy = calculate_metrics(data['pred_list'], data['gold_list'])
-    print(f"Question Type: {question_type}")
-    print(f" Precision: {precision:.2f}")
-    print(f" Recall: {recall:.2f}")
-    print(f" F1 Score: {f1:.2f}")
-    print(f" accuracy: {accuracy:.2f}")
+def main() -> None:
+    args = parse_args()
+    with open(args.file, "r", encoding="utf-8") as file:
+        doc_data = json.load(file)
+    with open(args.queries, "r", encoding="utf-8") as file:
+        query_data = json.load(file)
 
-# Calculate overall evaluation metrics
-overall_precision, overall_recall, overall_f1, overall_accuracy = calculate_metrics(overall_pred_list, overall_gold_list)
-print(f"Overall Metrics:")
-print(f" Precision: {overall_precision:.2f}")
-print(f" Recall: {overall_recall:.2f}")
-print(f" F1 Score: {overall_f1:.2f}")
-print(f" Accuracy: {overall_accuracy:.2f}")
+    gold_by_query = {item["query"]: item["answer"] for item in query_data}
+    type_data = defaultdict(lambda: {"predictions": [], "gold_answers": []})
+    overall_predictions = []
+    overall_gold_answers = []
+
+    for item in tqdm(doc_data, desc="Evaluating answers"):
+        model_answer = extract_answer(item["model_answer"])
+        gold_answer = item.get("gold_answer") or gold_by_query.get(item["query"])
+        if not gold_answer:
+            print(f"Skipping query without a gold answer: {item['query']}")
+            continue
+
+        question_type = item.get("question_type", "unknown")
+        type_data[question_type]["predictions"].append(model_answer)
+        type_data[question_type]["gold_answers"].append(gold_answer)
+        overall_predictions.append(model_answer)
+        overall_gold_answers.append(gold_answer)
+
+    for question_type, data in type_data.items():
+        precision, recall, f1, accuracy = calculate_metrics(
+            data["predictions"], data["gold_answers"]
+        )
+        print(f"Question Type: {question_type}")
+        print(f" Precision: {precision:.4f}")
+        print(f" Recall: {recall:.4f}")
+        print(f" F1 Score: {f1:.4f}")
+        print(f" Accuracy: {accuracy:.4f}")
+
+    precision, recall, f1, accuracy = calculate_metrics(
+        overall_predictions,
+        overall_gold_answers,
+    )
+    print("Overall Metrics:")
+    print(f" Precision: {precision:.4f}")
+    print(f" Recall: {recall:.4f}")
+    print(f" F1 Score: {f1:.4f}")
+    print(f" Accuracy: {accuracy:.4f}")
+
+
+if __name__ == "__main__":
+    main()

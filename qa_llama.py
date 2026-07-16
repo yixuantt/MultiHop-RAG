@@ -1,67 +1,210 @@
+
+
+
+import argparse
 import json
-import torch
-from util import rm_file,save_list_to_json
+import os
+from pathlib import Path
+from typing import Any, Dict, List
+
+from dotenv import load_dotenv
+from openai import OpenAI
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer,GenerationConfig
-torch.set_default_dtype(torch.float16) 
 
-model_name = "meta-llama/Llama-2-70b-chat-hf"
-save_file = f'qa_output/llama.json'
 
-model = AutoModelForCausalLM.from_pretrained(model_name,
-                                             device_map="auto")
-tokenizer = AutoTokenizer.from_pretrained(model_name,
-                                          device_map="auto")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Generate LLM answers from retrieval-result JSON using DashScope OpenAI-compatible API."
+    )
+    parser.add_argument(
+        "--input",
+        default="output/hybrid_query_result.json",
+        help="Retrieval-result JSON with query, answer, question_type and retrieval_list.",
+    )
+    parser.add_argument(
+        "--output",
+        default="qa_output/hybrid_qwen.json",
+        help="JSON file for generated answers.",
+    )
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="DashScope LLM model name. If omitted, use DASHSCOPE_LLM_MODEL from .env.",
+    )
+    parser.add_argument("--max_new_tokens", type=int, default=512)
+    parser.add_argument("--temperature", type=float, default=0.1)
+    parser.add_argument(
+        "--disable_thinking",
+        action="store_true",
+        default=True,
+        help="Disable Qwen thinking mode when the API supports enable_thinking=False.",
+    )
+    return parser.parse_args()
 
-prefix = "Below is a question followed by some context from different sources. Please answer the question based on the context. The answer to the question is a word or entity. If the provided information is insufficient to answer the question, respond 'Insufficient Information'. Answer directly without explanation."
 
-# toy_data/voyage-02_rerank_retrieval_test.json is a file saved the last step (retrieve).
-with open('toy_data/step1_data.json', 'r') as file:
-    doc_data = json.load(file)
+def build_client() -> OpenAI:
+    api_key = os.getenv("DASHSCOPE_API_KEY")
+    base_url = os.getenv(
+        "DASHSCOPE_BASE_URL",
+        "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    )
 
-def query_bot(
-            messages,
-            temperature=0.1,
-            max_new_tokens=512,
-            **kwargs,
-    ):
-        messages = [
-            {"role": "user", "content": messages},
-        ]
-        input_ids = tokenizer.apply_chat_template(messages, return_tensors="pt").cuda()
-        generation_config = GenerationConfig(
-                temperature=temperature,
-                **kwargs,
-            )
-        with torch.no_grad():
-            generation_output = model.generate(
-                    input_ids=input_ids,
-                    generation_config=generation_config,
-                    pad_token_id=tokenizer.unk_token_id,
-                    return_dict_in_generate=True,
-                    output_scores=True,
-                    max_new_tokens=max_new_tokens,
-                )
-        s = generation_output.sequences[0]
-        output = tokenizer.decode(s)
-        response = output.split("[/INST]")[1].strip()
-        return response
+    if not api_key:
+        raise ValueError(
+            "DASHSCOPE_API_KEY is not set. Please add it to your .env file."
+        )
 
-rm_file(save_file)
-save_list = []
-for d in tqdm(doc_data):
-    retrieval_list = d['retrieval_list']
-    context = '--------------'.join(e['text'] for e in retrieval_list)
-    prompt = f"{prefix}\n\nQuestion:{d['query']}\n\nContext:\n\n{context}"
-    response = query_bot(prompt)
-    # print(response)
-    save = {}
-    save['query'] = d['query']
-    save['prompt'] = prompt
-    save['model_answer'] = response
-    save['gold_answer'] = d['answer']
-    save['question_type'] = d['question_type']
-    save_list.append(save)
+    return OpenAI(
+        api_key=api_key,
+        base_url=base_url,
+    )
 
-save_list_to_json(save,save_file)
 
+def normalize_input_data(doc_data: Any) -> List[Dict[str, Any]]:
+    """
+    Accept both:
+    1. a list of retrieval results
+    2. a single retrieval result dict
+    """
+    if isinstance(doc_data, list):
+        return doc_data
+
+    if isinstance(doc_data, dict):
+        return [doc_data]
+
+    raise ValueError(
+        "Input JSON must be either a list of retrieval results or a single retrieval result object."
+    )
+
+
+def build_prompt(item: Dict[str, Any]) -> str:
+    prefix = (
+        "Below is a question followed by some context from different sources. "
+        "Please answer the question based on the context. The answer to the "
+        "question is a word or entity. If the provided information is "
+        "insufficient to answer the question, respond 'Insufficient Information'. "
+        "Answer directly without explanation."
+    )
+
+    retrieval_list = item.get("retrieval_list", [])
+    context = "\n\n--------------\n\n".join(
+        evidence.get("text", "")
+        for evidence in retrieval_list
+    )
+
+    query = item["query"]
+
+    prompt = (
+        f"{prefix}\n\n"
+        f"Question: {query}\n\n"
+        f"Context:\n\n{context}"
+    )
+
+    return prompt
+
+
+def generate_answer(
+    client: OpenAI,
+    model_name: str,
+    prompt: str,
+    temperature: float,
+    max_new_tokens: int,
+    disable_thinking: bool = True,
+) -> str:
+    extra_body = {}
+
+    if disable_thinking:
+        extra_body["enable_thinking"] = False
+
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=[
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        temperature=temperature,
+        max_tokens=max_new_tokens,
+        extra_body=extra_body if extra_body else None,
+    )
+
+    return response.choices[0].message.content.strip()
+
+
+def main() -> None:
+    load_dotenv()
+
+    args = parse_args()
+
+    model_name = args.model or os.getenv("DASHSCOPE_LLM_MODEL")
+
+    if not model_name:
+        raise ValueError(
+            "LLM model is not set. Please add DASHSCOPE_LLM_MODEL=qwen3.7-max to .env "
+            "or pass --model qwen3.7-max."
+        )
+
+    input_path = Path(args.input)
+    output_path = Path(args.output)
+
+    if not input_path.is_file():
+        raise FileNotFoundError(f"Retrieval result file was not found: {input_path}")
+
+    with input_path.open("r", encoding="utf-8") as file:
+        raw_doc_data = json.load(file)
+
+    doc_data = normalize_input_data(raw_doc_data)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    print(f"Input file: {input_path}")
+    print(f"Output file: {output_path}")
+    print(f"DashScope LLM: {model_name}")
+    print(f"Number of questions: {len(doc_data)}")
+
+    client = build_client()
+
+    save_list = []
+
+    for index, item in enumerate(tqdm(doc_data, desc="Generating answers"), start=1):
+        prompt = build_prompt(item)
+
+        print(f"Generating answer for query {index}/{len(doc_data)}...")
+
+        response = generate_answer(
+            client=client,
+            model_name=model_name,
+            prompt=prompt,
+            temperature=args.temperature,
+            max_new_tokens=args.max_new_tokens,
+            disable_thinking=args.disable_thinking,
+        )
+
+        save_list.append(
+            {
+                "query": item["query"],
+                "prompt": prompt,
+                "model_answer": response,
+                "gold_answer": item.get("answer"),
+                "question_type": item.get("question_type"),
+            }
+        )
+
+    with output_path.open("w", encoding="utf-8") as file:
+        json.dump(save_list, file, ensure_ascii=False, indent=2)
+
+    print(f"Saved {len(save_list)} model answers to: {output_path}")
+
+
+if __name__ == "__main__":
+    main()
+
+"""
+python qa_llama.py `
+  --input output/hybrid_query_result.json `
+  --output qa_output/hybrid_qwen.json
+
+
+python qa_evaluate.py --file qa_output/hybrid_qwen.json
+"""

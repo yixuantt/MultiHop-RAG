@@ -57,10 +57,15 @@ def calculate_metrics(retrieved_lists, gold_lists):
     }
 
 
-def main_eval(file_name):
+def main_eval(file_name, limit=None):
     print(f'For file: {file_name}')
-    with open(file_name, 'r') as file:
+    with open(file_name, 'r', encoding='utf-8') as file:
         data = json.load(file)
+    # Limit by original JSON record order before filtering null_query records.
+    # Thus --limit 20 evaluates the valid questions among data[0:20], rather
+    # than continuing through the file until it has collected 20 valid ones.
+    if limit is not None:
+        data = data[:limit]
     retrieved_lists = []
     gold_lists  = []
 
@@ -68,7 +73,15 @@ def main_eval(file_name):
         if d['question_type'] == 'null_query':
             continue
         retrieved_lists.append([m['text'] for m in d['retrieval_list']])
-        gold_lists.append([m['fact'] for m in d['gold_list']])     
+        gold_lists.append([m['fact'] for m in d['gold_list']])
+
+
+    if not retrieved_lists:
+        print('No valid queries found to evaluate.')
+        print('-' * 20)
+        return
+
+    print(f'Evaluating {len(retrieved_lists)} valid queries.')
 
     # Calculate metrics
     metrics = calculate_metrics(retrieved_lists, gold_lists)
@@ -83,14 +96,21 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Evaluation script with a file parameter.")
     parser.add_argument('--file', type=str, required=False, help='File Name')
     parser.add_argument('--path', type=str, required=False,default="output",  help='Folder Path')
+    parser.add_argument(
+        '--limit', type=int, default=None,
+        help='Evaluate valid queries among the first N JSON records (null_query records are skipped).'
+    )
     args = parser.parse_args()
+
+    if args.limit is not None and args.limit <= 0:
+        parser.error('--limit must be a positive integer')
 
     if args.file:
         print(f"Evaluate file: {args.file}")
-        main_eval(args.file)
+        main_eval(args.file, args.limit)
     else:
         path = args.path
         json_files = glob.glob(os.path.join(path, '*.json'))
         print(f"Evaluate files in folder: {path}")
         for file in json_files:
-            main_eval(file)
+            main_eval(file, args.limit)
