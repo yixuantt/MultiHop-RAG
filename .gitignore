@@ -1,1 +1,29 @@
 .DS_Store
+.idea/
+.venv/
+.env
+
+# Python cache and test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Runtime artifacts and locally generated indexes/models
+output/
+qa_output/
+storage/
+models/
+cache/
+*.tmp
+
+# Datasets: keep locally; do not publish until distribution is finalized
+dataset/
+toy_data/step1_data.json
+pipeline/datasource/api/news_api.json
+
+# Personal working notes (not part of the repository documentation)
+RAGV4-Langgraph计划.md
+RAG项目V3V4提升方案路线.md
+multihop的含义.md
+自动保存embedding结果.md
+项目运行流程.md
