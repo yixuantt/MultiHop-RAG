@@ -80,6 +80,13 @@ def main() -> None:
         default=256,
     )
     parser.add_argument(
+        "--chunk_overlap",
+        type=int,
+        default=25,
+        help="Chunk overlap in tokens. SentenceSplitter defaults to 200, which "
+        "with chunk_size=256 leaves only 56 tokens of new text per chunk.",
+    )
+    parser.add_argument(
         "--start",
         type=int,
         default=0,
@@ -97,6 +104,10 @@ def main() -> None:
         parser.error("--start must be non-negative")
     if args.limit is not None and args.limit <= 0:
         parser.error("--limit must be a positive integer")
+    if not 0 <= args.chunk_overlap < args.chunk_size:
+        parser.error(
+            "--chunk_overlap must be non-negative and smaller than --chunk_size"
+        )
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -106,7 +117,8 @@ def main() -> None:
     documents = reader.load_data(args.corpus)
 
     text_splitter = SentenceSplitter(
-        chunk_size=args.chunk_size
+        chunk_size=args.chunk_size,
+        chunk_overlap=args.chunk_overlap,
     )
 
     pipeline = IngestionPipeline(

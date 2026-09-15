@@ -325,6 +325,7 @@ if __name__ == '__main__':
     parser.add_argument('--rerank', action='store_true', required=False, default=False, help='if rerank')
     parser.add_argument('--topk', type=int, required=False, default=10, help='Top K')
     parser.add_argument('--chunk_size', type=int, required=False, default=256, help='chunk_size')
+    parser.add_argument('--chunk_overlap', type=int, required=False, default=25, help='chunk overlap in tokens (SentenceSplitter defaults to 200)')
     parser.add_argument('--context_window', type=int, required=False, default=2048, help='context_window')
     parser.add_argument('--num_output', type=int, required=False, default=256, help='num_output')
     parser.add_argument(
@@ -343,6 +344,12 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
+
+    if not 0 <= args.chunk_overlap < args.chunk_size:
+        parser.error(
+            "--chunk_overlap must be non-negative and smaller than --chunk_size"
+        )
+
     os.makedirs("output", exist_ok=True)
     os.makedirs("storage", exist_ok=True)
 
@@ -401,7 +408,12 @@ if __name__ == '__main__':
         embed_model = HuggingFaceEmbedding(model_name=model_name, trust_remote_code=True)
 
     # service context
-    text_splitter = SentenceSplitter(chunk_size=args.chunk_size)
+    # Set chunk_overlap explicitly: SentenceSplitter defaults it to 200, which
+    # with chunk_size=256 leaves only 56 tokens of new text per chunk.
+    text_splitter = SentenceSplitter(
+        chunk_size=args.chunk_size,
+        chunk_overlap=args.chunk_overlap,
+    )
     prompt_helper = PromptHelper(
         context_window=args.context_window,
         num_output=args.num_output,
