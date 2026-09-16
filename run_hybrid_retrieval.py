@@ -4,7 +4,11 @@ import argparse
 import json
 from pathlib import Path
 
-from hybrid_retriever import hybrid_retrieve, hybrid_retrieve_batch
+from hybrid_retriever import (
+    configure_default_retriever,
+    hybrid_retrieve,
+    hybrid_retrieve_batch,
+)
 
 
 def main() -> None:
@@ -36,6 +40,20 @@ def main() -> None:
     parser.add_argument("--rrf_top_k", type=int, default=10)
     parser.add_argument("--rerank_top_n", type=int, default=10)
     parser.add_argument(
+        "--chunk_size",
+        type=int,
+        default=None,
+        help="Dense-index chunk size in tokens. Defaults to HybridRetriever's "
+        "own default (256).",
+    )
+    parser.add_argument(
+        "--chunk_overlap",
+        type=int,
+        default=None,
+        help="Chunk overlap in tokens. Defaults to HybridRetriever's own default "
+        "(25). Changing chunk settings requires deleting the persisted index.",
+    )
+    parser.add_argument(
         "--output",
         default=None,
         help="Optional JSON output path. Results are printed if omitted.",
@@ -46,6 +64,19 @@ def main() -> None:
         parser.error("--start must be non-negative")
     if args.limit is not None and args.limit <= 0:
         parser.error("--limit must be a positive integer")
+
+    # Only explicit flags override the retriever defaults, so omitting both keeps
+    # the process-wide tool identical to HybridRetriever().
+    retriever_overrides = {
+        "chunk_size": args.chunk_size,
+        "chunk_overlap": args.chunk_overlap,
+    }
+    retriever_overrides = {
+        key: value for key, value in retriever_overrides.items() if value is not None
+    }
+    if retriever_overrides:
+        configure_default_retriever(**retriever_overrides)
+        print(f"Retriever overrides: {retriever_overrides}")
 
     if args.query:
         result = hybrid_retrieve(

@@ -81,10 +81,15 @@ class HybridRetriever:
         reranker_model: str = r"F:\model\bge-reranker-v2-m3",
         persist_dir: str = r"F:\storage\all-MiniLM-L6-v2_chunk256",
         chunk_size: int = 256,
+        chunk_overlap: int = 25,
         rrf_k: float = 60.0,
     ) -> None:
         if chunk_size <= 0:
             raise ValueError("chunk_size must be a positive integer")
+        if not 0 <= chunk_overlap < chunk_size:
+            raise ValueError(
+                "chunk_overlap must be non-negative and smaller than chunk_size"
+            )
         if rrf_k < 0:
             raise ValueError("rrf_k must be non-negative")
 
@@ -93,12 +98,19 @@ class HybridRetriever:
         self.dense_model_name = dense_model_name
         self.reranker_model = reranker_model
         self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
         self.rrf_k = rrf_k
 
         if not self.corpus_path.is_file():
             raise FileNotFoundError(f"Corpus file was not found: {self.corpus_path}")
 
-        self.text_splitter = SentenceSplitter(chunk_size=self.chunk_size)
+        # Set chunk_overlap explicitly: SentenceSplitter defaults it to 200, which
+        # with the default chunk_size=256 leaves only 56 tokens of new text per
+        # chunk and inflates the index with offset-duplicate fragments.
+        self.text_splitter = SentenceSplitter(
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
+        )
         self.embed_model = HuggingFaceEmbedding(
             model_name=dense_model_name,
             trust_remote_code=True,
